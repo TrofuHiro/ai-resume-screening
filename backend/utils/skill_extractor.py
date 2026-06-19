@@ -1,4 +1,5 @@
-import re
+from backend.utils.skill_mapper import normalize_skills
+
 SKILLS = [
     "python",
     "java",
@@ -21,19 +22,21 @@ SKILLS = [
     "git",
     "machine learning",
     "rest api",
-    "prisma","Figma",
-    "Adobe Photoshop",
-    "Adobe Illustrator",
-    "Sketch"
+    "prisma"
 ]
+
+
 def extract_skills(text):
     text = text.lower()
+
     found_skills = []
 
     for skill in SKILLS:
-        pattern = r"\b" + re.escape(skill.lower()) + r"\b"
-
-        if re.search(pattern, text):
+        if skill in text:
             found_skills.append(skill)
 
-    return found_skills
+    synonym_skills = normalize_skills(text)
+
+    all_skills = list(set(found_skills + synonym_skills))
+
+    return all_skills

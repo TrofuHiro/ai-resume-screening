@@ -9,7 +9,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTextEdit,
     QVBoxLayout,
-    QFileDialog
+    QFileDialog,
+    QProgressBar
 )
 
 
@@ -39,6 +40,12 @@ class ResumeApp(QWidget):
         self.analyze_btn = QPushButton("Analyze Candidate")
         self.analyze_btn.clicked.connect(self.analyze_candidate)
         layout.addWidget(self.analyze_btn)
+
+        self.score_bar = QProgressBar()
+        self.score_bar.setMinimum(0)
+        self.score_bar.setMaximum(100)
+        self.score_bar.setValue(0)
+        layout.addWidget(self.score_bar)
 
         self.result_label = QLabel("Result will appear here")
         layout.addWidget(self.result_label)
@@ -91,6 +98,34 @@ class ResumeApp(QWidget):
         except Exception as e:
             self.result_label.setText(f"Error: {str(e)}")
 
+    def update_score_color(self, score):
+        if score >= 80:
+            color = "#4CAF50"   # green
+        elif score >= 50:
+            color = "#FFC107"   # yellow
+        else:
+            color = "#F44336"   # red
+
+        self.score_bar.setStyleSheet(f"""
+            QProgressBar {{
+                border: 1px solid grey;
+                border-radius: 5px;
+                text-align: center;
+            }}
+
+            QProgressBar::chunk {{
+                background-color: {color};
+            }}
+        """)
+
+    def get_recommendation(self, score):
+        if score >= 80:
+            return "Strong Match"
+        elif score >= 50:
+            return "Potential Match"
+        else:
+            return "Low Match"
+
     def analyze_candidate(self):
         if not self.resume_skills:
             self.result_label.setText("Please upload resume first")
@@ -104,6 +139,7 @@ class ResumeApp(QWidget):
 
         payload = {
             "resume_skills": self.resume_skills,
+            "resume_text": self.resume_text,
             "job_description": job_description
         }
 
@@ -117,13 +153,22 @@ class ResumeApp(QWidget):
                 data = response.json()
 
                 score = data["score"]
-                matched = ", ".join(data["matched_skills"])
-                missing = ", ".join(data["missing_skills"])
+
+                matched = ", ".join(data["matched_skills"]) or "None"
+                missing = ", ".join(data["missing_skills"]) or "None"
+
+                score_int = round(score)
+
+                self.score_bar.setValue(score_int)
+                self.update_score_color(score_int)
+
+                recommendation = self.get_recommendation(score_int)
 
                 self.result_label.setText(
                     f"Score: {score}%\n"
-                    f"Matched: {matched}\n"
-                    f"Missing: {missing}"
+                    f"Matched Skills: {matched}\n"
+                    f"Missing Skills: {missing}\n"
+                    f"Recommendation: {recommendation}"
                 )
             else:
                 self.result_label.setText(

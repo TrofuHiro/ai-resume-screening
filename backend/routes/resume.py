@@ -25,15 +25,18 @@ async def upload_resume(file: UploadFile = File(...)):
     return {
     "filename": file.filename,
     "skills": skills,
-    "text": extracted_text[:1000]
+    "resume_text": extracted_text
 }
+
 @router.post("/match")
 async def match_resume(payload: JobDescriptionRequest):
     jd_skills = extract_skills(payload.job_description)
 
     result = calculate_match(
         payload.resume_skills,
-        jd_skills
+        jd_skills,
+        payload.resume_text,
+        payload.job_description
     )
 
     return {
