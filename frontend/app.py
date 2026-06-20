@@ -12,9 +12,10 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QProgressBar,
     QTableWidget,
-    QTableWidgetItem
+    QTableWidgetItem,
+    QHeaderView
 )
-
+from PyQt6.QtGui import QColor
 
 class ResumeApp(QWidget):
     def __init__(self):
@@ -54,6 +55,58 @@ class ResumeApp(QWidget):
         self.history_table.setHorizontalHeaderLabels(
             ["Resume ID", "Resume Name", "Score", "Recommendation", "Missing Skills"]
         )
+
+        header = self.history_table.horizontalHeader()
+
+        # Resume ID -> พอดีกับตัวเลข
+        header.setSectionResizeMode(
+            0,
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        # Resume Name -> ขยายตามพื้นที่
+        header.setSectionResizeMode(
+            1,
+            QHeaderView.ResizeMode.Stretch
+        )
+
+        # Score -> พอดีข้อความ
+        header.setSectionResizeMode(
+            2,
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        # Recommendation -> พอดีข้อความ
+        header.setSectionResizeMode(
+            3,
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        # Missing Skills -> กินพื้นที่ที่เหลือ
+        header.setSectionResizeMode(
+            4,
+            QHeaderView.ResizeMode.Stretch
+        ) 
+
+        # ซ่อนเลข row ด้านซ้าย
+        self.history_table.verticalHeader().setVisible(False)
+
+        # ความสูงแต่ละ row
+        self.history_table.verticalHeader().setDefaultSectionSize(40)
+
+        # เลือกทั้ง row
+        self.history_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+
+        # ห้ามแก้ไขใน table
+        self.history_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+
+        # สีสลับแถว
+        self.history_table.setAlternatingRowColors(True)
+
         layout.addWidget(self.history_table)
 
         self.score_bar = QProgressBar()
@@ -71,6 +124,7 @@ class ResumeApp(QWidget):
         """)
         self.result_label.setWordWrap(True)
         layout.addWidget(self.result_label)
+
 
         self.setStyleSheet("""
             QWidget {
@@ -111,6 +165,7 @@ class ResumeApp(QWidget):
                 gridline-color: #e5e5e5;
                 selection-background-color: #dbe7ff;
                 selection-color: black;
+                alternate-background-color: #f8faff;
             }
 
             QHeaderView::section {
@@ -124,7 +179,8 @@ class ResumeApp(QWidget):
             QProgressBar {
                 color: black;
             }
-        """)
+
+                """)
         self.setLayout(layout)
 
     def upload_resume(self):
@@ -268,37 +324,32 @@ class ResumeApp(QWidget):
 
             for row_index, item in enumerate(data):
                 self.history_table.setItem(
-                    row_index,
-                    0,
-                    QTableWidgetItem(str(item["resume_id"]))
+                    row_index, 0, self.make_item(item["resume_id"])
                 )
 
                 self.history_table.setItem(
-                    row_index,
-                    1,
-                    QTableWidgetItem(item["filename"])
+                    row_index, 1, self.make_item(item["filename"])
                 )
 
                 self.history_table.setItem(
-                    row_index,
-                    2,
-                    QTableWidgetItem(str(item["score"]))
+                    row_index, 2, self.make_item(item["score"])
                 )
 
                 self.history_table.setItem(
-                    row_index,
-                    3,
-                    QTableWidgetItem(item["recommendation"])
+                    row_index, 3, self.make_item(item["recommendation"])
                 )
 
                 self.history_table.setItem(
-                    row_index,
-                    4,
-                    QTableWidgetItem(item["missing_skills"])
+                    row_index, 4, self.make_item(item["missing_skills"])
                 )
 
         except Exception as e:
             self.result_label.setText(f"Error: {str(e)}")
+
+    def make_item(self, text):
+        item = QTableWidgetItem(str(text))
+        item.setForeground(QColor("black"))
+        return item
 
 
 app = QApplication(sys.argv)
