@@ -6,8 +6,6 @@ from backend.services.matching import calculate_match
 from backend.schemas.job import JobDescriptionRequest
 from backend.database import SessionLocal
 from backend.models import Resume, AnalysisResult
-from backend.models import AnalysisResult
-from backend.database import SessionLocal
 
 router = APIRouter()
 
@@ -78,25 +76,33 @@ async def match_resume(payload: JobDescriptionRequest):
     }
 
 @router.get("/analysis-history")
-async def analysis_history():
+def analysis_history():
     db = SessionLocal()
 
     try:
-        history = db.query(AnalysisResult).all()
+        results = (
+            db.query(AnalysisResult, Resume)
+            .join(Resume, AnalysisResult.resume_id == Resume.id)
+            .order_by(AnalysisResult.id.desc())
+            .all()
+        )
 
-        result = []
+        history = []
 
-        for row in history:
-            result.append({
-                "id": row.id,
-                "resume_id": row.resume_id,
-                "score": row.score,
-                "recommendation": row.recommendation,
-                "matched_skills": row.matched_skills,
-                "missing_skills": row.missing_skills
+        for analysis, resume in results:
+            history.append({
+                "id": analysis.id,
+                "resume_id": analysis.resume_id,
+                "filename": resume.filename if resume else "Unknown",
+                "score": analysis.score,
+                "skill_score": analysis.skill_score,
+                "semantic_score": analysis.semantic_score,
+                "recommendation": analysis.recommendation,
+                "matched_skills": analysis.matched_skills,
+                "missing_skills": analysis.missing_skills
             })
 
-        return result
+        return history
 
     finally:
         db.close()
