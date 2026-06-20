@@ -4,6 +4,10 @@ from backend.utils.pdf_parser import extract_text_from_pdf
 from backend.utils.skill_extractor import extract_skills
 from backend.services.matching import calculate_match
 from backend.schemas.job import JobDescriptionRequest
+from backend.database import SessionLocal
+from backend.models import Resume, AnalysisResult
+from backend.models import AnalysisResult
+from backend.database import SessionLocal
 
 router = APIRouter()
 
@@ -22,11 +26,24 @@ async def upload_resume(file: UploadFile = File(...)):
     extracted_text = extract_text_from_pdf(file_path)
     skills = extract_skills(extracted_text)
 
+    db = SessionLocal()
+
+    new_resume = Resume(
+        filename=file.filename,
+        raw_text=extracted_text
+    )
+
+    db.add(new_resume)
+    db.commit()
+    db.refresh(new_resume)
+    db.close()
+
     return {
-    "filename": file.filename,
-    "skills": skills,
-    "resume_text": extracted_text
-}
+        "resume_id": new_resume.id,
+        "filename": file.filename,
+        "skills": skills,
+        "resume_text": extracted_text
+    }
 
 @router.post("/match")
 async def match_resume(payload: JobDescriptionRequest):
@@ -39,7 +56,47 @@ async def match_resume(payload: JobDescriptionRequest):
         payload.job_description
     )
 
+    db = SessionLocal()
+
+    analysis = AnalysisResult(
+        resume_id=payload.resume_id,
+        score=result["score"],
+        skill_score=result["skill_score"],
+        semantic_score=result["semantic_score"],
+        recommendation=result["recommendation"],
+        matched_skills=",".join(result["matched_skills"]),
+        missing_skills=",".join(result["missing_skills"])
+    )
+
+    db.add(analysis)
+    db.commit()
+    db.close()
+
     return {
         "job_skills": jd_skills,
         **result
     }
+
+@router.get("/analysis-history")
+async def analysis_history():
+    db = SessionLocal()
+
+    try:
+        history = db.query(AnalysisResult).all()
+
+        result = []
+
+        for row in history:
+            result.append({
+                "id": row.id,
+                "resume_id": row.resume_id,
+                "score": row.score,
+                "recommendation": row.recommendation,
+                "matched_skills": row.matched_skills,
+                "missing_skills": row.missing_skills
+            })
+
+        return result
+
+    finally:
+        db.close()

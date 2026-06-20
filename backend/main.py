@@ -6,7 +6,6 @@ from backend.routes.resume import router as resume_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
 app.include_router(resume_router)
 
 

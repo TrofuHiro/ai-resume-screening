@@ -23,6 +23,8 @@ class ResumeApp(QWidget):
 
         self.selected_file = None
         self.resume_skills = []
+        self.resume_text = ""
+        self.resume_id = None
 
         layout = QVBoxLayout()
 
@@ -48,6 +50,7 @@ class ResumeApp(QWidget):
         layout.addWidget(self.score_bar)
 
         self.result_label = QLabel("Result will appear here")
+        self.result_label.setWordWrap(True)
         layout.addWidget(self.result_label)
 
         self.setLayout(layout)
@@ -82,17 +85,20 @@ class ResumeApp(QWidget):
             if response.status_code == 200:
                 data = response.json()
 
-                skills = data.get("skills", [])
-                self.resume_skills = skills
-                skill_text = ", ".join(skills)
+                self.resume_skills = data.get("skills", [])
+                self.resume_text = data.get("resume_text", "")
+                self.resume_id = data.get("resume_id", None)
+
+                skill_text = ", ".join(self.resume_skills)
 
                 self.result_label.setText(
                     f"Uploaded: {filename}\n"
+                    f"Resume ID: {self.resume_id}\n"
                     f"Skills: {skill_text}"
                 )
             else:
                 self.result_label.setText(
-                    f"Upload Failed: {response.status_code}"
+                    f"Upload Failed: {response.status_code}\n{response.text}"
                 )
 
         except Exception as e:
@@ -100,11 +106,11 @@ class ResumeApp(QWidget):
 
     def update_score_color(self, score):
         if score >= 80:
-            color = "#4CAF50"   # green
+            color = "#4CAF50"
         elif score >= 50:
-            color = "#FFC107"   # yellow
+            color = "#FFC107"
         else:
-            color = "#F44336"   # red
+            color = "#F44336"
 
         self.score_bar.setStyleSheet(f"""
             QProgressBar {{
@@ -117,14 +123,6 @@ class ResumeApp(QWidget):
                 background-color: {color};
             }}
         """)
-
-    def get_recommendation(self, score):
-        if score >= 80:
-            return "Strong Match"
-        elif score >= 50:
-            return "Potential Match"
-        else:
-            return "Low Match"
 
     def analyze_candidate(self):
         if not self.resume_skills:
@@ -140,7 +138,8 @@ class ResumeApp(QWidget):
         payload = {
             "resume_skills": self.resume_skills,
             "resume_text": self.resume_text,
-            "job_description": job_description
+            "job_description": job_description,
+            "resume_id": self.resume_id
         }
 
         try:
@@ -153,6 +152,9 @@ class ResumeApp(QWidget):
                 data = response.json()
 
                 score = data["score"]
+                recommendation = data["recommendation"]
+                skill_score = data["skill_score"]
+                semantic_score = data["semantic_score"]
 
                 matched = ", ".join(data["matched_skills"]) or "None"
                 missing = ", ".join(data["missing_skills"]) or "None"
@@ -162,17 +164,17 @@ class ResumeApp(QWidget):
                 self.score_bar.setValue(score_int)
                 self.update_score_color(score_int)
 
-                recommendation = self.get_recommendation(score_int)
-
                 self.result_label.setText(
-                    f"Score: {score}%\n"
+                    f"Final Score: {score}%\n"
+                    f"Skill Score: {skill_score}%\n"
+                    f"Semantic Score: {semantic_score}%\n\n"
                     f"Matched Skills: {matched}\n"
-                    f"Missing Skills: {missing}\n"
+                    f"Missing Skills: {missing}\n\n"
                     f"Recommendation: {recommendation}"
                 )
             else:
                 self.result_label.setText(
-                    f"Match Failed: {response.status_code}"
+                    f"Match Failed: {response.status_code}\n{response.text}"
                 )
 
         except Exception as e:

@@ -4,7 +4,11 @@ from backend.utils.semantic_matcher import document_similarity
 def normalize_skills(skills):
     mapping = {
         "mysql": "sql",
-        "postgresql": "sql"
+        "postgresql": "sql",
+        "mariadb": "sql",
+        "restful api": "rest api",
+        "express.js": "express",
+        "nextjs": "next.js"
     }
 
     normalized = []

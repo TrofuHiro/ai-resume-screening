@@ -23,6 +23,11 @@ class AnalysisResult(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     resume_id = Column(Integer, ForeignKey("resumes.id"))
+
     score = Column(Float)
+    skill_score = Column(Float)
+    semantic_score = Column(Float)
+    recommendation = Column(String)
+
     matched_skills = Column(Text)
     missing_skills = Column(Text)
