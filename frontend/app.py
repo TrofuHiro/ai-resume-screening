@@ -1,7 +1,7 @@
 import sys
 import os
 import requests
-
+import matplotlib.pyplot as plt
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
@@ -13,7 +13,8 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QTableWidget,
     QTableWidgetItem,
-    QHeaderView
+    QHeaderView,
+    QComboBox
 )
 from PyQt6.QtGui import QColor
 
@@ -33,6 +34,18 @@ class ResumeApp(QWidget):
 
         title = QLabel("AI Resume Screening System")
         layout.addWidget(title)
+
+        self.graph_selector = QComboBox()
+        self.graph_selector.addItems([
+            "Skill Score",
+            "Semantic Score",
+            "Final Score"
+        ])
+        layout.addWidget(self.graph_selector)
+
+        self.graph_btn = QPushButton("Show Graph")
+        self.graph_btn.clicked.connect(self.show_graph)
+        layout.addWidget(self.graph_btn)
 
         self.upload_btn = QPushButton("Upload Resume PDF")
         self.upload_btn.clicked.connect(self.upload_resume)
@@ -350,6 +363,50 @@ class ResumeApp(QWidget):
         item = QTableWidgetItem(str(text))
         item.setForeground(QColor("black"))
         return item
+
+    def show_graph(self):
+        try:
+            response = requests.get(
+                "http://127.0.0.1:8000/analysis-history"
+            )
+
+            if response.status_code != 200:
+                QMessageBox.warning(self, "Error", "Cannot load graph data")
+                return
+
+            data = response.json()
+
+            if not data:
+                QMessageBox.warning(self, "Error", "No history data found")
+                return
+
+            selected = self.graph_selector.currentText()
+
+            x = []
+            y = []
+
+            for item in data:
+                x.append(item["filename"])
+
+                if selected == "Skill Score":
+                    y.append(item["skill_score"])
+
+                elif selected == "Semantic Score":
+                    y.append(item["semantic_score"])
+
+                else:
+                    y.append(item["score"])
+
+            plt.figure(figsize=(10, 5))
+            plt.bar(x, y)
+            plt.xticks(rotation=45, ha="right")
+            plt.ylabel("Score")
+            plt.title(selected)
+            plt.tight_layout()
+            plt.show()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
 
 
 app = QApplication(sys.argv)
