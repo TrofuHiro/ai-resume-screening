@@ -22,7 +22,7 @@ class ResumeApp(QWidget):
         super().__init__()
 
         self.setWindowTitle("AI Resume Screening")
-        self.resize(700, 500)
+        self.resize(1280, 720)
 
         self.selected_file = None
         self.resume_skills = []
