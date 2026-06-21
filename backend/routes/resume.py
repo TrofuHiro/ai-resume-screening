@@ -106,3 +106,45 @@ def analysis_history():
 
     finally:
         db.close()
+
+@router.delete("/delete-candidate/{resume_id}")
+def delete_candidate(resume_id: int):
+    db = SessionLocal()
+
+    try:
+        analyses = (
+            db.query(AnalysisResult)
+            .filter(AnalysisResult.resume_id == resume_id)
+            .all()
+        )
+
+        resume = (
+            db.query(Resume)
+            .filter(Resume.id == resume_id)
+            .first()
+        )
+
+        if not analyses and not resume:
+            return {"message": "Candidate not found"}
+
+        for analysis in analyses:
+            db.delete(analysis)
+
+        if resume:
+            file_path = os.path.join(UPLOAD_FOLDER, resume.filename)
+
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+            db.delete(resume)
+
+        db.commit()
+
+        return {"message": "Deleted successfully"}
+
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+
+    finally:
+        db.close()

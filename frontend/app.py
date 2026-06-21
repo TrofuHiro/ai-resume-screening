@@ -58,11 +58,15 @@ class ResumeApp(QWidget):
         self.history_btn = QPushButton("View History")
         self.history_btn.clicked.connect(self.load_history)
 
+        self.delete_btn = QPushButton("Delete Candidate")
+        self.delete_btn.clicked.connect(self.delete_candidate)
+
         toolbar.addWidget(self.graph_selector)
         toolbar.addWidget(self.graph_btn)
         toolbar.addWidget(self.upload_btn)
         toolbar.addWidget(self.analyze_btn)
         toolbar.addWidget(self.history_btn)
+        toolbar.addWidget(self.delete_btn)
 
         layout.addLayout(toolbar)
 
@@ -442,6 +446,53 @@ class ResumeApp(QWidget):
         self.score_bar.setValue(score)
         self.score_bar.setFormat(f"{score}/100")
         self.update_score_color(score)
+    def delete_candidate(self):
+        selected_row = self.history_table.currentRow()
+
+        if selected_row < 0:
+            QMessageBox.warning(self, "Warning", "Please select a candidate first")
+            return
+
+        candidate = self.history_data[selected_row]
+        resume_id = candidate["resume_id"]
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Delete candidate ID {resume_id} ?",
+            QMessageBox.StandardButton.Yes |
+            QMessageBox.StandardButton.No
+        )
+
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            response = requests.delete(
+                f"http://127.0.0.1:8000/delete-candidate/{resume_id}"
+            )
+
+            if response.status_code == 200:
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    "Candidate deleted successfully"
+                )
+
+                self.load_history()
+                self.result_label.setText("Result will appear here")
+                self.score_bar.setValue(0)
+                self.score_bar.setFormat("0/100")
+
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    response.text
+                )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
 
 
 app = QApplication(sys.argv)
