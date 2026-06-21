@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTextEdit,
     QVBoxLayout,
+    QHBoxLayout,
     QFileDialog,
     QProgressBar,
     QTableWidget,
@@ -36,33 +37,38 @@ class ResumeApp(QWidget):
         title = QLabel("AI Resume Screening System")
         layout.addWidget(title)
 
+        toolbar = QHBoxLayout()
+
         self.graph_selector = QComboBox()
         self.graph_selector.addItems([
             "Skill Score",
             "Semantic Score",
             "Final Score"
         ])
-        layout.addWidget(self.graph_selector)
 
         self.graph_btn = QPushButton("Show Graph")
         self.graph_btn.clicked.connect(self.show_graph)
-        layout.addWidget(self.graph_btn)
 
         self.upload_btn = QPushButton("Upload Resume PDF")
         self.upload_btn.clicked.connect(self.upload_resume)
-        layout.addWidget(self.upload_btn)
+
+        self.analyze_btn = QPushButton("Analyze Candidate")
+        self.analyze_btn.clicked.connect(self.analyze_candidate)
+
+        self.history_btn = QPushButton("View History")
+        self.history_btn.clicked.connect(self.load_history)
+
+        toolbar.addWidget(self.graph_selector)
+        toolbar.addWidget(self.graph_btn)
+        toolbar.addWidget(self.upload_btn)
+        toolbar.addWidget(self.analyze_btn)
+        toolbar.addWidget(self.history_btn)
+
+        layout.addLayout(toolbar)
 
         self.job_input = QTextEdit()
         self.job_input.setPlaceholderText("Paste Job Description Here...")
         layout.addWidget(self.job_input)
-
-        self.analyze_btn = QPushButton("Analyze Candidate")
-        self.analyze_btn.clicked.connect(self.analyze_candidate)
-        layout.addWidget(self.analyze_btn)
-
-        self.history_btn = QPushButton("View History")
-        self.history_btn.clicked.connect(self.load_history)
-        layout.addWidget(self.history_btn)
 
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(5)
@@ -118,6 +124,7 @@ class ResumeApp(QWidget):
         self.score_bar.setMinimum(0)
         self.score_bar.setMaximum(100)
         self.score_bar.setValue(0)
+        self.score_bar.setFormat("0/100")
         layout.addWidget(self.score_bar)
 
         self.result_label = QLabel("Result will appear here")
@@ -145,6 +152,8 @@ class ResumeApp(QWidget):
                 border-radius: 8px;
                 padding: 8px;
                 font-weight: bold;
+                min-height: 36px;
+                min-width: 130px;
             }
 
             QPushButton:hover {
@@ -296,6 +305,7 @@ class ResumeApp(QWidget):
                 score_int = round(score)
 
                 self.score_bar.setValue(score_int)
+                self.score_bar.setFormat(f"{score_int}/100")
                 self.update_score_color(score_int)
 
                 self.result_label.setText(
@@ -430,6 +440,7 @@ class ResumeApp(QWidget):
 
         score = round(candidate["score"])
         self.score_bar.setValue(score)
+        self.score_bar.setFormat(f"{score}/100")
         self.update_score_color(score)
 
 
