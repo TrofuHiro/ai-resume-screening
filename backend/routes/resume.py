@@ -83,7 +83,7 @@ def analysis_history():
         results = (
             db.query(AnalysisResult, Resume)
             .join(Resume, AnalysisResult.resume_id == Resume.id)
-            .order_by(AnalysisResult.id.desc())
+            .order_by(AnalysisResult.score.desc())
             .all()
         )
 

@@ -14,7 +14,8 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
-    QComboBox
+    QComboBox,
+    QMessageBox
 )
 from PyQt6.QtGui import QColor
 
@@ -69,55 +70,46 @@ class ResumeApp(QWidget):
             ["Resume ID", "Resume Name", "Score", "Recommendation", "Missing Skills"]
         )
 
+        self.history_table.cellClicked.connect(self.show_candidate_detail)
+
         header = self.history_table.horizontalHeader()
 
-        # Resume ID -> พอดีกับตัวเลข
         header.setSectionResizeMode(
             0,
             QHeaderView.ResizeMode.ResizeToContents
         )
 
-        # Resume Name -> ขยายตามพื้นที่
         header.setSectionResizeMode(
             1,
             QHeaderView.ResizeMode.Stretch
         )
 
-        # Score -> พอดีข้อความ
         header.setSectionResizeMode(
             2,
             QHeaderView.ResizeMode.ResizeToContents
         )
 
-        # Recommendation -> พอดีข้อความ
         header.setSectionResizeMode(
             3,
             QHeaderView.ResizeMode.ResizeToContents
         )
 
-        # Missing Skills -> กินพื้นที่ที่เหลือ
         header.setSectionResizeMode(
             4,
             QHeaderView.ResizeMode.Stretch
-        ) 
+        )
 
-        # ซ่อนเลข row ด้านซ้าย
         self.history_table.verticalHeader().setVisible(False)
-
-        # ความสูงแต่ละ row
         self.history_table.verticalHeader().setDefaultSectionSize(40)
 
-        # เลือกทั้ง row
         self.history_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
 
-        # ห้ามแก้ไขใน table
         self.history_table.setEditTriggers(
             QTableWidget.EditTrigger.NoEditTriggers
         )
 
-        # สีสลับแถว
         self.history_table.setAlternatingRowColors(True)
 
         layout.addWidget(self.history_table)
@@ -226,6 +218,7 @@ class ResumeApp(QWidget):
             if response.status_code == 200:
                 data = response.json()
 
+
                 self.resume_skills = data.get("skills", [])
                 self.resume_text = data.get("resume_text", "")
                 self.resume_id = data.get("resume_id", None)
@@ -332,6 +325,7 @@ class ResumeApp(QWidget):
                 return
 
             data = response.json()
+            self.history_data = data
 
             self.history_table.setRowCount(len(data))
 
@@ -407,6 +401,36 @@ class ResumeApp(QWidget):
 
         except Exception as e:
             QMessageBox.warning(self, "Error", str(e))
+
+    def show_candidate_detail(self, row, column):
+        candidate = self.history_data[row]
+
+        matched = candidate["matched_skills"]
+        missing = candidate["missing_skills"]
+
+        if matched:
+            matched = "• " + matched.replace(",", "\n• ")
+        else:
+            matched = "None"
+
+        if missing:
+            missing = "• " + missing.replace(",", "\n• ")
+        else:
+            missing = "None"
+
+        self.result_label.setText(
+            f"Resume: {candidate['filename']}\n\n"
+            f"Final Score: {candidate['score']}%\n"
+            f"Skill Score: {candidate['skill_score']}%\n"
+            f"Semantic Score: {candidate['semantic_score']}%\n\n"
+            f"Matched Skills:\n{matched}\n\n"
+            f"Missing Skills:\n{missing}\n\n"
+            f"Recommendation: {candidate['recommendation']}"
+        )
+
+        score = round(candidate["score"])
+        self.score_bar.setValue(score)
+        self.update_score_color(score)
 
 
 app = QApplication(sys.argv)
