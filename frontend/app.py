@@ -74,6 +74,19 @@ class ResumeApp(QWidget):
         self.job_input.setPlaceholderText("Paste Job Description Here...")
         layout.addWidget(self.job_input)
 
+        self.dashboard_label = QLabel(
+            "Candidates: 0 | Average Score: 0% | Best Candidate: None"
+        )
+
+        self.dashboard_label.setStyleSheet("""
+            background: white;
+            border: 1px solid #d0d7e2;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: bold;
+        """)
+        layout.addWidget(self.dashboard_label)
+
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(5)
         self.history_table.setHorizontalHeaderLabels(
@@ -341,6 +354,22 @@ class ResumeApp(QWidget):
             data = response.json()
             self.history_data = data
 
+            if data:
+                total = len(data)
+                avg_score = round(sum(item["score"] for item in data) / total, 2)
+                best_candidate = data[0]["filename"]
+
+                self.dashboard_label.setText(
+                    f"Candidates: {total} | "
+                    f"Average Score: {avg_score}% | "
+                    f"Best Candidate: {best_candidate}"
+                )
+            else:
+                self.dashboard_label.setText(
+                    "Candidates: 0 | Average Score: 0% | Best Candidate: None"
+                )
+
+            self.history_table.clearContents()
             self.history_table.setRowCount(len(data))
 
             for row_index, item in enumerate(data):
@@ -356,14 +385,24 @@ class ResumeApp(QWidget):
                     row_index, 2, self.make_item(item["score"])
                 )
 
+                recommendation = item["recommendation"]
+
+                if row_index == 0:
+                    recommendation = "⭐ " + recommendation
+
                 self.history_table.setItem(
-                    row_index, 3, self.make_item(item["recommendation"])
+                    row_index,
+                    3,
+                    self.make_item(recommendation)
                 )
 
                 self.history_table.setItem(
                     row_index, 4, self.make_item(item["missing_skills"])
                 )
-
+                if row_index == 0:
+                    for col in range(5):
+                        item = self.history_table.item(row_index, col)
+                        item.setBackground(QColor("#FFD700"))
         except Exception as e:
             self.result_label.setText(f"Error: {str(e)}")
 
@@ -398,15 +437,34 @@ class ResumeApp(QWidget):
 
                 if selected == "Skill Score":
                     y.append(item["skill_score"])
-
                 elif selected == "Semantic Score":
                     y.append(item["semantic_score"])
-
                 else:
                     y.append(item["score"])
 
             plt.figure(figsize=(10, 5))
-            plt.bar(x, y)
+
+            colors = []
+
+            for score in y:
+                if score >= 80:
+                    colors.append("green")
+                elif score >= 50:
+                    colors.append("orange")
+                else:
+                    colors.append("red")
+
+            bars = plt.bar(x, y, color=colors)
+
+            for bar in bars:
+                height = bar.get_height()
+                plt.text(
+                    bar.get_x() + bar.get_width()/2,
+                    height + 1,
+                    f"{round(height)}",
+                    ha="center"
+                )
+
             plt.xticks(rotation=45, ha="right")
             plt.ylabel("Score")
             plt.title(selected)
